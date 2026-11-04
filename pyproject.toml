@@ -7,11 +7,18 @@ authors = [
     { name = "Jens-Alrik Adrian", email = "jensalrik.adrian@gmail.com" }
 ]
 requires-python = ">=3.15"
-dependencies = []
+dependencies = [
+    "typer>=0.27.3",
+]
 
 [project.scripts]
-xplane12-flightplanner = "xplane12_flightplanner:main"
+xplane12-flightplanner = "xplane12_flightplanner.main:main"
 
 [build-system]
 requires = ["uv_build>=0.12.19,<0.13.0"]
 build-backend = "uv_build"
+
+[dependency-groups]
+test = [
+    "pytest>=9.2.0",
+]
