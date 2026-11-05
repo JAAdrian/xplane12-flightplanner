@@ -1,9 +1,17 @@
 """Interface to rfinder.asalink.net."""
 
+from dataclasses import dataclass
+
 import requests
+from bs4 import BeautifulSoup
 
 
-def get_route(
+@dataclass
+class RouteEntities:
+    x: int = 5
+
+
+def get_route_from_rfinder(
     departure: str = "",
     arrival: str = "",
     airac_cycle: str = "2406",
@@ -33,3 +41,7 @@ def get_route(
     response.raise_for_status()
 
     return response.text
+
+
+def parse_rfinder_plan(html: str):
+    soup = BeautifulSoup(html, "html.parser")
