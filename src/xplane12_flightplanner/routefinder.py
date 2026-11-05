@@ -1,14 +1,67 @@
 """Interface to rfinder.asalink.net."""
 
+import re
 from dataclasses import dataclass
 
 import requests
 from bs4 import BeautifulSoup
 
+_LEG = re.compile(
+    r"\s*(?P<id>\w+)\s+(?P<freq>\d+.?\d{2})?\s+(?P<trk>\d+)\s+(?P<dist>\d+)\s+"
+    r"(?P<lat>[NS0-9°\\'\".]+)\s+(?P<lon>[EW0-9°\\'\".]+)\s+(?P<name>\w+)"
+)
+
+_COORD = re.compile(
+    r"(?P<prefix>[NSWE]{1})"
+    r"(?P<degree>\d{1,3})(?:°{1})"
+    r"(?P<minute>\d{1,2})(?:\')"
+    r"(?P<second>\d{1,2}\.\d+)(?:\")"
+)
+
 
 @dataclass
-class RouteEntities:
-    x: int = 5
+class RouteItem:
+    id: str
+    longitude: str | float
+    latitude: str | float
+    trk: int
+    dist: int
+    name: str
+    freq: str = ""
+
+    def __post_init__(self):
+        if isinstance(self.longitude, str) and "'" in self.longitude:
+            fixed_coordinate = self._fix_coordinate(self.longitude)
+            self.longitude = fixed_coordinate
+        if isinstance(self.latitude, str) and "'" in self.latitude:
+            fixed_coordinate = self._fix_coordinate(self.latitude)
+            self.latitude = fixed_coordinate
+
+    def _fix_coordinate(self, coordinate):
+        match = _COORD.search(coordinate)
+        assert match is not None
+
+        groups = match.groupdict()
+        decimal_degrees = (
+            float(groups["degree"])
+            + float(groups["minute"]) / 60
+            + float(groups["second"]) / 3600
+        )
+        sign = -1 if groups["prefix"] in ["S", "W"] else 1
+
+        return sign * decimal_degrees
+
+
+def route_from_dict(match_dict: dict) -> RouteItem:
+    route = RouteItem(
+        id=match_dict["id"],
+        longitude=match_dict["lon"],
+        latitude=match_dict["lat"],
+        trk=int(match_dict["trk"]),
+        dist=int(match_dict["dist"]),
+        name=match_dict["name"],
+    )
+    return route
 
 
 def get_route_from_rfinder(
@@ -43,5 +96,26 @@ def get_route_from_rfinder(
     return response.text
 
 
-def parse_rfinder_plan(html: str):
+def parse_rfinder_plan(html: str) -> list[RouteItem]:
     soup = BeautifulSoup(html, "html.parser")
+
+    body = soup.find("body")
+    assert body is not None
+
+    legs = body.find("pre")
+    assert legs is not None
+
+    route = []
+
+    table = legs.text.splitlines()
+    for line in table:
+        if "ID" in line:
+            continue
+        matches = _LEG.search(line)
+        assert matches is not None
+
+        groups = matches.groupdict()
+        leg = route_from_dict(groups)
+        route.append(leg)
+
+    return route
