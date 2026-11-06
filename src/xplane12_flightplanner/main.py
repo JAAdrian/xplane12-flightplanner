@@ -5,7 +5,7 @@ import pathlib
 import rich.console
 import typer
 
-from . import fms11, routefinder
+from . import fms11, fuelplanner, routefinder
 
 console = rich.console.Console()
 app = typer.Typer(no_args_is_help=True)
@@ -13,6 +13,7 @@ app = typer.Typer(no_args_is_help=True)
 
 @app.command()
 def create(
+    plane: str,
     departure: str,
     arrival: str,
     min_level: int = 300,
@@ -37,7 +38,7 @@ def create(
             max_level=max_level,
         )
     route = routefinder.parse_rfinder_plan(html=html)
-    console.print("[bold green]Flight Plan obtained")
+    console.print("[bold green]Flight Plan Obtained")
 
     fms_filename = (
         pathlib.Path.home() / "Downloads" / f"{departure}{arrival}"
@@ -50,6 +51,13 @@ def create(
     )
     fms.write(filename=fms_filename)
     console.print("[bold green]FMS file written to " + str(fms_filename))
+
+    with console.status("Requesting Fuel Plan..."):
+        fuel = fuelplanner.get_fuel_plan(
+            plane=plane, departure_icao=departure, arrival_icao=arrival
+        )
+    fuel = fuelplanner.parse_fuel_plan(fuel)
+    console.print("[bold green]Fuel Plan Obtained")
 
 
 def main():
