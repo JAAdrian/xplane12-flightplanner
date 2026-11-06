@@ -6,6 +6,8 @@ from dataclasses import dataclass
 import requests
 from bs4 import BeautifulSoup
 
+_RFINDER_URL = r"https://rfinder.asalink.net/free/autoroute_rtx.php"
+
 _LEG = re.compile(
     r"\s*(?P<id>\w+)\s+(?P<freq>\d+\.?\d+)?\s+(?P<trk>\d+)\s+(?P<dist>\d+)\s+"
     r"(?P<lat>[NS0-9°\\'\".]+)\s+(?P<lon>[EW0-9°\\'\".]+)\s+(?P<name>\w+)"
@@ -95,7 +97,7 @@ def get_route_from_rfinder(
     }
 
     response = requests.post(
-        "https://rfinder.asalink.net/free/autoroute_rtx.php",
+        _RFINDER_URL,
         data=payload,
         timeout=60,
     )
