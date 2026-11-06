@@ -7,7 +7,7 @@ import requests
 from bs4 import BeautifulSoup
 
 _LEG = re.compile(
-    r"\s*(?P<id>\w+)\s+(?P<freq>\d+\.?\d{2})?\s+(?P<trk>\d+)\s+(?P<dist>\d+)\s+"
+    r"\s*(?P<id>\w+)\s+(?P<freq>\d+\.?\d+)?\s+(?P<trk>\d+)\s+(?P<dist>\d+)\s+"
     r"(?P<lat>[NS0-9°\\'\".]+)\s+(?P<lon>[EW0-9°\\'\".]+)\s+(?P<name>\w+)"
 )
 
@@ -17,6 +17,8 @@ _COORD = re.compile(
     r"(?P<minute>\d{1,2})(?:\')"
     r"(?P<second>\d{1,2}\.\d+)(?:\")"
 )
+
+_VIA = re.compile(r"(?<=-)([\w\d]+)(?=->)")
 
 
 @dataclass
@@ -28,6 +30,8 @@ class RouteItem:
     dist: int
     name: str
     freq: str = ""
+    type: int = 11
+    via: str = ""
 
     def __post_init__(self):
         if isinstance(self.longitude, str) and "'" in self.longitude:
@@ -62,6 +66,9 @@ def route_from_dict(match_dict: dict) -> RouteItem:
         name=match_dict["name"],
         freq=match_dict["freq"] if match_dict["freq"] else "",
     )
+    if route.freq:
+        route.type = 3
+
     return route
 
 
@@ -101,22 +108,54 @@ def parse_rfinder_plan(html: str) -> list[RouteItem]:
     soup = BeautifulSoup(html, "html.parser")
 
     body = soup.find("body")
-    assert body is not None
+    assert body is not None, "No body found in HTML"
 
+    # find the leg table
     legs = body.find("pre")
-    assert legs is not None
+    assert legs is not None, "No leg table found in HTML body"
 
-    route = []
-
+    # parse the leg table
     table = legs.text.splitlines()
+    departure_processed = False
+    route = []
     for line in table:
         if "ID" in line:
             continue
         matches = _LEG.search(line)
-        assert matches is not None
+        assert matches is not None, "Leg item was not parsed from leg table"
 
         groups = matches.groupdict()
         leg = route_from_dict(groups)
+
+        # set type and via for the departure airport (i.e. first element)
+        if not departure_processed:
+            leg.type = 1
+            leg.via = "ADEP"
+            departure_processed = True
+
         route.append(leg)
+
+    # set type and via for the arrival airport (i.e. last element)
+    route[-1].type = 1
+    route[-1].via = "ADES"
+
+    # find the VIAs
+    vias = _VIA.findall(body.text)
+    assert vias, "No VIAs parsed from HTML body"
+    assert len(vias) == (len(route) - 1), "The number of VIAs did not match the legs."
+
+    # apply VIAs
+    leg_counter = -1
+    for leg in route:
+        if leg.via in ["ADEP", "ADES"]:
+            continue
+        leg_counter += 1
+
+        this_via = vias[leg_counter]
+        if this_via == "SID":
+            leg.via = "DRCT"
+            continue
+
+        leg.via = this_via
 
     return route
