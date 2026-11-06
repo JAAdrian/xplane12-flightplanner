@@ -81,7 +81,7 @@ def get_route_from_rfinder(
     min_level: int = 300,
     max_level: int = 400,
     level: str = "B",
-):
+) -> str:
     payload = {
         "id1": departure,
         "id2": arrival,
