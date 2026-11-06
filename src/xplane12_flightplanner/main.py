@@ -52,7 +52,7 @@ def create(
         arrival_icao=arrival,
         legs=route,
     )
-    fms.create(filename=fms_filename)
+    fms.write(filename=fms_filename)
 
 
 def main():
