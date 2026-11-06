@@ -2,13 +2,12 @@
 
 import pathlib
 
+import rich.console
 import typer
-from rich import print
 
 from . import fms11, routefinder
 
-_DEBUG_MODE = False
-
+console = rich.console.Console()
 app = typer.Typer(no_args_is_help=True)
 
 
@@ -29,19 +28,16 @@ def create(
     departure = departure.upper()
     arrival = arrival.upper()
 
-    html = routefinder.get_route_from_rfinder(
-        departure=departure,
-        arrival=arrival,
-        airac_cycle=airac_cycle,
-        min_level=min_level,
-        max_level=max_level,
-    )
-
-    if _DEBUG_MODE:
-        with open("src/xplane12_flightplanner/example.html", "wt") as file:
-            file.write(html)
-
+    with console.status("Requesting Flight Plan..."):
+        html = routefinder.get_route_from_rfinder(
+            departure=departure,
+            arrival=arrival,
+            airac_cycle=airac_cycle,
+            min_level=min_level,
+            max_level=max_level,
+        )
     route = routefinder.parse_rfinder_plan(html=html)
+    console.print("[bold green]Flight Plan obtained")
 
     fms_filename = (
         pathlib.Path.home() / "Downloads" / f"{departure}{arrival}"
@@ -53,6 +49,7 @@ def create(
         legs=route,
     )
     fms.write(filename=fms_filename)
+    console.print("[bold green]FMS file written to " + str(fms_filename))
 
 
 def main():
