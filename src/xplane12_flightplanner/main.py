@@ -5,7 +5,7 @@ import pathlib
 import rich.console
 import typer
 
-from . import DEFAULT_AIRAC_CYCLE, fms11, fuelplanner, routefinder
+from . import DEFAULT_AIRAC_CYCLE, fms11, fuelplanner, pdf, routefinder
 
 console = rich.console.Console()
 app = typer.Typer(no_args_is_help=True)
@@ -37,27 +37,45 @@ def create(
             min_level=min_level,
             max_level=max_level,
         )
-    route = routefinder.parse_rfinder_plan(html=html)
+        route = routefinder.parse_rfinder_plan(html=html)
     console.print("[bold green]Flight Plan Obtained")
-
-    fms_filename = (
-        pathlib.Path.home() / "Downloads" / f"{departure}{arrival}"
-    ).with_suffix(".fms")
-    fms = fms11.Fms11(
-        airac_cycle=airac_cycle,
-        departure_icao=departure,
-        arrival_icao=arrival,
-        legs=route,
-    )
-    fms.write(filename=fms_filename)
-    console.print("[bold green]FMS file written to " + str(fms_filename))
 
     with console.status("Requesting Fuel Plan..."):
         fuel = fuelplanner.get_fuel_plan(
             plane=plane, departure_icao=departure, arrival_icao=arrival
         )
-    fuel = fuelplanner.parse_fuel_plan(fuel)
+        fuel = fuelplanner.parse_fuel_plan(fuel)
     console.print("[bold green]Fuel Plan Obtained")
+
+    with console.status("Writing Flight Plan..."):
+        fms = fms11.Fms11(
+            airac_cycle=airac_cycle,
+            departure_icao=departure,
+            arrival_icao=arrival,
+            legs=route,
+        )
+
+        fms_filename = (
+            pathlib.Path.home() / "Downloads" / f"{departure}{arrival}"
+        ).with_suffix(".fms")
+        fms.write(filename=fms_filename)
+
+        pdf_filename = (
+            pathlib.Path.home() / "Downloads" / f"{departure}-{arrival}"
+        ).with_suffix(".pdf")
+        pdf.write_flight_plan(
+            pdf_filename,
+            route=route,
+            fuel=fuel,
+            departure_icao=departure,
+            arrival_icao=arrival,
+            plane=plane,
+            min_level=min_level,
+            max_level=max_level,
+            airac_cycle=airac_cycle,
+        )
+    console.print("[bold green]FMS file written to " + str(fms_filename))
+    console.print("[bold green]PDF file written to " + str(pdf_filename))
 
 
 def main():
