@@ -1,5 +1,6 @@
 """Interface and tools to request a fuel plan from fuelplanner.com."""
 
+import re
 from dataclasses import dataclass
 
 import bs4
@@ -7,12 +8,17 @@ import requests
 
 _FUELPLANNER_URL = r"https://fuelplanner.com/"
 
+_LOAD_SHEET_RESERVE = re.compile(r"EFU\.\d+/\s*RSV\.(\d+)")
+_LOAD_SHEET_TAKE_OFF = re.compile(r"^TAKE OFF FUEL\s+(\d+)", re.MULTILINE)
+_LOAD_SHEET_TRIP = re.compile(r"^TRIP FUEL\s+(\d+)", re.MULTILINE)
+
 
 @dataclass
 class FuelItem:
     block_fuel: int
     reserve_fuel: int
     total_fuel: int
+    loadsheet: str = ""
 
 
 def _get_oew(plane: str) -> int:
@@ -62,7 +68,7 @@ def get_fuel_plan(plane: str, departure_icao: str, arrival_icao: str) -> str:
         "EQPT": sane_plane,
         "ORIG": departure_icao,
         "DEST": arrival_icao,
-        "submit": "PLANNER",
+        "submit": "LOADSHEET",
         "RULES": "FARDOM",
         "TANKER": "",
         "UNITS": "LBS",
@@ -83,6 +89,27 @@ def get_fuel_plan(plane: str, departure_icao: str, arrival_icao: str) -> str:
 def parse_fuel_plan(html: str) -> FuelItem:
     soup = bs4.BeautifulSoup(html, "html.parser")
 
+    loadsheet = soup.find("pre")
+    if loadsheet is not None:
+        return _parse_loadsheet(loadsheet.get_text().strip())
+
+    return _parse_planner_table(soup)
+
+
+def _parse_loadsheet(text: str) -> FuelItem:
+    trip = _LOAD_SHEET_TRIP.search(text)
+    reserve = _LOAD_SHEET_RESERVE.search(text)
+    take_off = _LOAD_SHEET_TAKE_OFF.search(text)
+
+    return FuelItem(
+        block_fuel=int(trip.group(1)) if trip else 0,
+        reserve_fuel=int(reserve.group(1)) if reserve else 0,
+        total_fuel=int(take_off.group(1)) if take_off else 0,
+        loadsheet=text,
+    )
+
+
+def _parse_planner_table(soup: bs4.BeautifulSoup) -> FuelItem:
     table = soup.find(lambda tag: tag.name == "table")
     assert table is not None
 
@@ -106,5 +133,7 @@ def parse_fuel_plan(html: str) -> FuelItem:
             continue
 
     return FuelItem(
-        block_fuel=block_fuel, reserve_fuel=reserve_fuel, total_fuel=total_fuel
+        block_fuel=block_fuel,
+        reserve_fuel=reserve_fuel,
+        total_fuel=total_fuel,
     )
