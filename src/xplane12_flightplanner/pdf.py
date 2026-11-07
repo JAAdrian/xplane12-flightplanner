@@ -173,6 +173,14 @@ def _compact_route(route: list[routefinder.RouteItem]) -> str:
     return " ".join(parts)
 
 
+def _compact_leg_ids(route: list[routefinder.RouteItem]) -> str:
+    if not route:
+        return ""
+
+    ids = [route_item.id for route_item in route[1:-1]]
+    return " ".join(ids)
+
+
 def _table_style(
     *,
     header_span: tuple[int, int] | None = None,
@@ -271,6 +279,7 @@ def write_flight_plan(
     styles = _styles()
     distances = _cumulative_distances(route)
     compact_route = _compact_route(route)
+    compact_leg_ids = _compact_leg_ids(route)
     date_string = dt.date.today().strftime("%d%b%y").upper()
 
     departure_name = route[0].name if route else departure_icao
@@ -333,7 +342,11 @@ def write_flight_plan(
             spaceAfter=6,
         ),
         Paragraph(
-            f"<b>{escape(compact_route)}</b>",
+            "Copy these IDs to your ATC route clearance window:",
+            styles["body"],
+        ),
+        Paragraph(
+            f"<b>{escape(compact_leg_ids)}</b>",
             styles["body"],
         ),
     ]
@@ -365,8 +378,7 @@ def write_flight_plan(
                 _fuel_table(fuel),
                 Spacer(1, 12),
                 Paragraph(
-                    f"<b>Load total fuel:</b> "
-                    f"{fuel.total_fuel:,} lb",
+                    f"<b>Load total fuel:</b> {fuel.total_fuel:,} lb",
                     styles["body"],
                 ),
                 Spacer(1, 8),
