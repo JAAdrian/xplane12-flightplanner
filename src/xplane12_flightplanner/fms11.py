@@ -27,7 +27,7 @@ class Fms11:
         """Create the FMS file."""
         num_waypoints = len(self.legs)
 
-        with open(filename, "wt") as file:
+        with filename.open("w") as file:
             file.write("I\n")
             file.write("1100 Version\n")
             file.write(f"CYCLE {self.airac_cycle}\n")

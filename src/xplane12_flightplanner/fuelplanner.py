@@ -1,6 +1,5 @@
 """Interface and tools to request a fuel plan from fuelplanner.com."""
 
-import re
 from dataclasses import dataclass
 
 import bs4

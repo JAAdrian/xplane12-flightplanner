@@ -68,7 +68,7 @@ def route_from_dict(match_dict: dict) -> RouteItem:
         trk=int(match_dict["trk"]),
         dist=int(match_dict["dist"]),
         name=match_dict["name"],
-        freq=match_dict["freq"] if match_dict["freq"] else "",
+        freq=match_dict["freq"] or "",
     )
     if route.freq:
         route.type = 3
