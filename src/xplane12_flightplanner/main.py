@@ -61,7 +61,7 @@ def create(
         fms.write(filename=fms_filename)
 
         pdf_filename = (
-            pathlib.Path.home() / "Downloads" / f"{departure}-{arrival}"
+            pathlib.Path.home() / "Downloads" / f"{plane.upper()}-{departure}-{arrival}"
         ).with_suffix(".pdf")
         pdf.write_flight_plan(
             pdf_filename,
