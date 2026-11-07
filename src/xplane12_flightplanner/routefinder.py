@@ -123,7 +123,7 @@ def parse_rfinder_plan(html: str) -> list[RouteItem]:
     departure_processed = False
     route = []
     for line in table:
-        if "ID" in line:
+        if "Name/Remarks" in line:
             continue
         matches = _LEG.search(line)
         assert matches is not None, "Leg item was not parsed from leg table"
