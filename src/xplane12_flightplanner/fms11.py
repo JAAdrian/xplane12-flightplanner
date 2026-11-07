@@ -2,9 +2,8 @@
 
 import pathlib
 
-from . import routefinder
+from . import DEFAULT_AIRAC_CYCLE, routefinder
 
-_DEFAULT_AIRAC_CYCLE = "2406"
 _REQUIRED_ALTITUDE = 0
 
 
@@ -19,7 +18,7 @@ class Fms11:
         legs: list[routefinder.RouteItem],
     ):
         """Instantiate the object."""
-        self.airac_cycle: str = airac_cycle or _DEFAULT_AIRAC_CYCLE
+        self.airac_cycle: str = airac_cycle or DEFAULT_AIRAC_CYCLE
         self.departure_icao: str = departure_icao or ""
         self.destination_icao: str = arrival_icao or ""
         self.legs: list[routefinder.RouteItem] = legs or []

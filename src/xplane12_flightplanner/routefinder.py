@@ -6,6 +6,8 @@ from dataclasses import dataclass
 import requests
 from bs4 import BeautifulSoup
 
+from . import DEFAULT_AIRAC_CYCLE
+
 _RFINDER_URL = r"https://rfinder.asalink.net/free/autoroute_rtx.php"
 
 _LEG = re.compile(
@@ -77,7 +79,7 @@ def route_from_dict(match_dict: dict) -> RouteItem:
 def get_route_from_rfinder(
     departure: str = "",
     arrival: str = "",
-    airac_cycle: str = "2406",
+    airac_cycle: str = DEFAULT_AIRAC_CYCLE,
     min_level: int = 300,
     max_level: int = 400,
     level: str = "B",

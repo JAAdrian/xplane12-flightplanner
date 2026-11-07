@@ -5,7 +5,7 @@ import pathlib
 import rich.console
 import typer
 
-from . import fms11, fuelplanner, routefinder
+from . import DEFAULT_AIRAC_CYCLE, fms11, fuelplanner, routefinder
 
 console = rich.console.Console()
 app = typer.Typer(no_args_is_help=True)
@@ -18,7 +18,7 @@ def create(
     arrival: str,
     min_level: int = 300,
     max_level: int = 400,
-    airac_cycle: str = "2406",
+    airac_cycle: str = DEFAULT_AIRAC_CYCLE,
 ):
     """Create flightplan files for desired departure and arrival in the download dir.
 
