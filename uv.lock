@@ -292,11 +292,13 @@ source = { editable = "." }
 dependencies = [
     { name = "beautifulsoup4" },
     { name = "requests" },
-    { name = "ruff" },
     { name = "typer" },
 ]
 
 [package.dev-dependencies]
+dev = [
+    { name = "ruff" },
+]
 test = [
     { name = "pytest" },
 ]
@@ -305,9 +307,9 @@ test = [
 requires-dist = [
     { name = "beautifulsoup4", specifier = ">=4.15.0" },
     { name = "requests", specifier = ">=2.34.2" },
-    { name = "ruff", specifier = ">=0.17.4" },
     { name = "typer", specifier = ">=0.27.3" },
 ]
 
 [package.metadata.requires-dev]
+dev = [{ name = "ruff", specifier = ">=0.17.4" }]
 test = [{ name = "pytest", specifier = ">=9.2.0" }]
