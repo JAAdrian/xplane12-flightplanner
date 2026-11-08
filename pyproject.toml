@@ -1,7 +1,7 @@
 [project]
 name = "xplane12-flightplanner"
-version = "0.1.0"
-description = "Add your description here"
+version = "0.2.0"
+description = "A simple recreation of onlineflightplanner.org"
 readme = "README.md"
 authors = [
     { name = "Jens-Alrik Adrian", email = "jensalrik.adrian@gmail.com" }
@@ -11,6 +11,7 @@ dependencies = [
     "beautifulsoup4>=4.15.0",
     "reportlab>=5.1.0",
     "requests>=2.34.2",
+    "rich>=15.0.0",
     "typer>=0.27.3",
 ]
 
