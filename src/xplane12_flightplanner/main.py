@@ -7,8 +7,30 @@ import typer
 
 from . import DEFAULT_AIRAC_CYCLE, fms11, fuelplanner, pdf, routefinder
 
+PDF_FILE_LOCATION = r"/home/j/X-Plane 12 Flightplans/"
+FMS_FILE_LOCATION = (
+    r"/mnt/j/Games/SteamLibrary/steamapps/common/X-Plane 12/Output/FMS plans/"
+)
+
 console = rich.console.Console()
 app = typer.Typer(no_args_is_help=True)
+
+
+def _get_filenames(
+    plane: str, departure: str, arrival: str
+) -> tuple[pathlib.Path, pathlib.Path]:
+    fms_file_location = pathlib.Path(FMS_FILE_LOCATION)
+    pdf_file_location = pathlib.Path(PDF_FILE_LOCATION)
+
+    fms_filename = fms_file_location / f"{departure}{arrival}.fms"
+
+    # Special case: find subdirectory
+    subdirectory = "B737-800X" if plane == "B737" else plane
+    pdf_filename = (
+        pdf_file_location / subdirectory / f"{plane.upper()}-{departure}-{arrival}.pdf"
+    )
+
+    return fms_filename, pdf_filename
 
 
 @app.command()
@@ -23,8 +45,15 @@ def create(
     """Create flightplan files for desired departure and arrival in the download dir.
 
     Args:
-        departure: the departure airport's ICAO code (e.g. EDDW)
-        arrival: the arrival airport's ICAO code (e.g. EDDM)
+        plane: The desired plane type. One of A319, A320, A321, A330, A340, B737
+        departure: The departure airport's ICAO code (e.g. EDDW)
+        arrival: The arrival airport's ICAO code (e.g. EDDM)
+        min_level: Minimum flight level for the given plan
+        max_level: Maximum flight level for the given plan
+        airac_cycle: Your AIRAC data's release date. This is updated eventually with
+                     X-Plane versions. You can find it in your plane's FMS computer or
+                     e.g. in your installation directory in the file
+                     "X-Plane 12/Resources/default data/earth_awy.dat"
     """
     departure = departure.upper()
     arrival = arrival.upper()
@@ -55,14 +84,11 @@ def create(
             legs=route,
         )
 
-        fms_filename = (
-            pathlib.Path.home() / "Downloads" / f"{departure}{arrival}"
-        ).with_suffix(".fms")
-        fms.write(filename=fms_filename)
+        fms_filename, pdf_filename = _get_filenames(
+            plane=plane, departure=departure, arrival=arrival
+        )
 
-        pdf_filename = (
-            pathlib.Path.home() / "Downloads" / f"{plane.upper()}-{departure}-{arrival}"
-        ).with_suffix(".pdf")
+        fms.write(filename=fms_filename)
         pdf.write_flight_plan(
             pdf_filename,
             route=route,
@@ -76,6 +102,38 @@ def create(
         )
     console.print("[bold green]FMS file written to " + str(fms_filename))
     console.print("[bold green]PDF file written to " + str(pdf_filename))
+
+
+@app.command()
+def delete(
+    plane: str,
+    departure: str,
+    arrival: str,
+):
+    """Delete a potentially existing flightplan tuple of FMS and PDF.
+
+    Args:
+        plane: The desired plane type. One of A319, A320, A321, A330, A340, B737
+        departure: The departure airport's ICAO code (e.g. EDDW)
+        arrival: The arrival airport's ICAO code (e.g. EDDM)
+    """
+    departure = departure.upper()
+    arrival = arrival.upper()
+
+    fms_filename, pdf_filename = _get_filenames(
+        plane=plane, departure=departure, arrival=arrival
+    )
+
+    if not fms_filename.is_file() and not pdf_filename.is_file():
+        console.print("[bold green]No Files Found. Aborting...")
+        return
+
+    if fms_filename.is_file():
+        fms_filename.unlink()
+    if pdf_filename.is_file():
+        pdf_filename.unlink()
+
+    console.print("[bold green]File(s) Deleted")
 
 
 def main():
