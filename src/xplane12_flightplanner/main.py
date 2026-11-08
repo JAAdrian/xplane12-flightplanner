@@ -3,6 +3,7 @@
 import pathlib
 
 import rich.console
+import rich.prompt
 import typer
 
 from . import DEFAULT_AIRAC_CYCLE, fms11, fuelplanner, pdf, routefinder
@@ -33,6 +34,31 @@ def _get_filenames(
     return fms_filename, pdf_filename
 
 
+def _can_proceed(fms_filename: pathlib.Path, pdf_filename: pathlib.Path) -> bool:
+    if fms_filename.is_file() and pdf_filename.is_file():
+        console.print(
+            "[bold red]Files already exist! Delete them first via 'delete'. Aborting..."
+        )
+        return False
+
+    if fms_filename.is_file() and not pdf_filename.is_file():
+        console.print(
+            f"[bold yellow]The FMS file [bold]{fms_filename.name}[/bold] already "
+            "exists, but the matching PDF does not."
+        )
+        if not rich.prompt.Confirm.ask(
+            "Overwrite the FMS file and create a new file pair?",
+            default=False,
+            console=console,
+        ):
+            console.print("[bold red]Aborting...")
+            return False
+        else:
+            return True
+
+    return True
+
+
 @app.command()
 def create(
     plane: str,
@@ -58,6 +84,12 @@ def create(
     departure = departure.upper()
     arrival = arrival.upper()
 
+    fms_filename, pdf_filename = _get_filenames(
+        plane=plane, departure=departure, arrival=arrival
+    )
+    if not _can_proceed(fms_filename=fms_filename, pdf_filename=pdf_filename):
+        return
+
     with console.status("Requesting Flight Plan..."):
         html = routefinder.get_route_from_rfinder(
             departure=departure,
@@ -82,10 +114,6 @@ def create(
             departure_icao=departure,
             arrival_icao=arrival,
             legs=route,
-        )
-
-        fms_filename, pdf_filename = _get_filenames(
-            plane=plane, departure=departure, arrival=arrival
         )
 
         fms.write(filename=fms_filename)
@@ -125,7 +153,15 @@ def delete(
     )
 
     if not fms_filename.is_file() and not pdf_filename.is_file():
-        console.print("[bold green]No Files Found. Aborting...")
+        console.print("[bold red]No Files Found. Aborting...")
+        return
+
+    if not rich.prompt.Confirm.ask(
+        "[bold yellow]Do you want to delete the currently existing flight plan files?",
+        default=True,
+        console=console,
+    ):
+        console.print("[bold red]Aborting...")
         return
 
     if fms_filename.is_file():
